@@ -1,7 +1,29 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { PDFDocument, StandardFonts } from 'pdf-lib';
 import { pdfAdapter } from '../packages/integrations/import';
+test('API route loads when the PDF runtime is unavailable', () => {
+  execFileSync(
+    process.execPath,
+    [
+      '--import',
+      'tsx',
+      '--input-type=module',
+      '-e',
+      `
+    import { registerHooks } from 'node:module';
+    registerHooks({ resolve(specifier, context, nextResolve) {
+      if (specifier === 'pdf-parse') throw new Error('PDF runtime unavailable');
+      return nextResolve(specifier, context);
+    }});
+    const route = await import('./apps/web/app/api/[...path]/route.ts');
+    if (typeof (route.POST ?? route.default?.POST) !== 'function') throw new Error('Missing API handler');
+  `,
+    ],
+    { cwd: process.cwd(), stdio: 'pipe' },
+  );
+});
 export async function fixturePDF() {
   const pdf = await PDFDocument.create();
   const page = pdf.addPage();

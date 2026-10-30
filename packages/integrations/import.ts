@@ -1,4 +1,3 @@
-import { PDFParse } from 'pdf-parse';
 import { PDFDocument, PDFTextField, PDFCheckBox } from 'pdf-lib';
 export interface CharacterSourceAdapter {
   capabilities: {
@@ -28,6 +27,9 @@ export const pdfAdapter: CharacterSourceAdapter = {
       if (field instanceof PDFTextField) fields[field.getName()] = field.getText() ?? '';
       else if (field instanceof PDFCheckBox) fields[field.getName()] = String(field.isChecked());
     }
+    // PDF.js loads native graphics support. Keep it out of authentication and
+    // other requests that share this adapter's route module.
+    const { PDFParse } = await import('pdf-parse');
     const parser = new PDFParse({ data: bytes.slice() });
     let text = '';
     try {
