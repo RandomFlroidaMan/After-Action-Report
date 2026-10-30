@@ -95,6 +95,7 @@ Backup: stop the embedded web process, back up `.data` securely, and test restor
 | Variable                     | Use                                                                                                    |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------ |
 | `AAR_REGISTRATION_CODE`      | Hosted-only private signup phrase, 24–256 characters                                                   |
+| `BLOB_STORE_ID`              | Modern Vercel Blob connection, using automatic Vercel workload identity                                |
 | `BLOB_READ_WRITE_TOKEN`      | Server-side token for a **private** Vercel Blob store                                                  |
 | `POSTGRES_URL`               | Alternate PostgreSQL URL injected by Vercel integrations                                               |
 | `DATABASE_URL`               | Optional network PostgreSQL; absent uses embedded DB                                                   |

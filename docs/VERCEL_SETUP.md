@@ -30,7 +30,7 @@ If the marketplace offers a different provider, do not enter an unrelated connec
 
 1. In the same Vercel project, open **Storage → Create Database/Store → Blob**.
 2. Choose **Private** access when creating the Blob store. A public store is not appropriate for character sheets or recordings. The SDK always requests `access: private` and will not silently fall back to public storage.
-3. Connect the store to the project. Vercel should create **`BLOB_READ_WRITE_TOKEN`** as a server environment variable. Never prefix it with `NEXT_PUBLIC_` or put it in GitHub.
+3. Connect the store to the project. New Vercel connections may create **`BLOB_STORE_ID`** (and `BLOB_WEBHOOK_PUBLIC_KEY`), using Vercel’s automatic workload identity; AAR supports this. Older connections provide **`BLOB_READ_WRITE_TOKEN`**, which is also supported. Do not rename these variables or copy the webhook public key into a read-write token. Never prefix it with `NEXT_PUBLIC_` or put it in GitHub.
 
 The server generates storage paths; no user filename becomes a path. Downloads pass through the authenticated API, which checks campaign access before reading private content. Hosted files do not use Vercel's temporary/read-only disk.
 
@@ -38,7 +38,7 @@ The server generates storage paths; no user filename becomes a path. Downloads p
 
 1. Go to **Settings → Environment Variables**.
 2. Add **`AAR_REGISTRATION_CODE`**.
-3. Set its value to a new private phrase **24–256 characters long**. Use your password manager to generate one, or use a long random phrase. Do not use the local demo password, your OpenAI key or your account password.
+3. Set its value to a new private phrase **24–256 characters long**. Spaces count as characters; underscores are not required. Enter the exact same phrase, including spaces, when creating an account. Use your password manager to generate one, or use a long random phrase. Do not use the local demo password, your OpenAI key or your account password.
 4. Save it for **Production** (and separately for Preview if you intend to test previews). Share it privately only with people allowed to create accounts for this private test.
 
 Hosted cookies automatically require HTTPS. The local demo login block is hidden online, and the deployment never runs the demo seed. The first person to create an account with the private code can create their campaign and becomes its DM; there is no preinstalled administrator. Members still need a campaign invitation after account creation. Rotate the private code if it is shared too widely. Email verification/password reset and managed production auth are still future work.

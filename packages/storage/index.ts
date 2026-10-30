@@ -2,7 +2,7 @@ import { put, get, del } from '@vercel/blob';
 import { mkdir, writeFile, readFile, unlink } from 'node:fs/promises';
 import path from 'node:path';
 import { dataDir } from '../db/index';
-import { isHosted } from '../deployment/config';
+import { hasBlobConfiguration, isHosted } from '../deployment/config';
 export interface PrivateStorage {
   put(key: string, bytes: Uint8Array, mime: string): Promise<string>;
   read(key: string): Promise<Uint8Array>;
@@ -33,15 +33,22 @@ export interface BlobSDK {
   get: typeof get;
   del: typeof del;
 }
+export interface BlobAuth {
+  token?: string;
+  storeId?: string;
+}
 export class VercelPrivateStorage implements PrivateStorage {
+  private auth: BlobAuth;
   constructor(
-    private token: string,
+    auth: string | BlobAuth,
     private sdk: BlobSDK = { put, get, del },
-  ) {}
+  ) {
+    this.auth = typeof auth === 'string' ? { token: auth } : auth;
+  }
   async put(key: string, bytes: Uint8Array, mime: string) {
     await this.sdk.put(validKey(key), Buffer.from(bytes), {
       access: 'private',
-      token: this.token,
+      ...this.auth,
       contentType: mime,
       addRandomSuffix: false,
       allowOverwrite: false,
@@ -51,7 +58,7 @@ export class VercelPrivateStorage implements PrivateStorage {
   async read(key: string) {
     const result = await this.sdk.get(validKey(key), {
       access: 'private',
-      token: this.token,
+      ...this.auth,
       useCache: false,
     });
     if (!result || result.statusCode !== 200) throw new Error('Private source not found');
@@ -62,12 +69,15 @@ export class VercelPrivateStorage implements PrivateStorage {
     return new Uint8Array(await new Response(result.stream).arrayBuffer());
   }
   async remove(key: string) {
-    await this.sdk.del(validKey(key), { token: this.token });
+    await this.sdk.del(validKey(key), { ...this.auth });
   }
 }
 export function privateStorage(): PrivateStorage {
-  if (process.env.BLOB_READ_WRITE_TOKEN)
-    return new VercelPrivateStorage(process.env.BLOB_READ_WRITE_TOKEN);
+  if (hasBlobConfiguration())
+    return new VercelPrivateStorage({
+      token: process.env.BLOB_READ_WRITE_TOKEN,
+      storeId: process.env.BLOB_STORE_ID,
+    });
   if (isHosted()) throw new Error('Private Blob storage is not configured');
   return new LocalPrivateStorage();
 }

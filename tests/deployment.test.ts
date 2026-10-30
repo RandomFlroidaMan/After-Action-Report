@@ -134,3 +134,67 @@ test('migration startup is repeatable and rate limits persist across callers', a
     await db.close();
   }
 });
+test('modern Vercel store IDs satisfy storage configuration without a legacy read-write token', () => {
+  const base = {
+    VERCEL: '1',
+    DATABASE_URL: 'postgres://fixture',
+    AAR_REGISTRATION_CODE: 'a'.repeat(24),
+  };
+  assert.equal(hostedReadiness({ ...base, BLOB_STORE_ID: 'store_fixture' }).ready, true);
+  assert.equal(
+    hostedReadiness({ ...base, BLOB_WEBHOOK_PUBLIC_KEY: 'fixture-public-key' }).ready,
+    false,
+  );
+});
+test('store-ID authentication is passed to the official SDK for private reads, writes and deletes', async () => {
+  const calls: any[] = [];
+  const sdk = {
+    async put(key: string, _bytes: unknown, options: unknown) {
+      calls.push({ key, options });
+      return {};
+    },
+    async get(key: string, options: unknown) {
+      calls.push({ key, options });
+      return {
+        statusCode: 200,
+        blob: { size: 4 },
+        stream: new ReadableStream({
+          start(c) {
+            c.enqueue(new TextEncoder().encode('test'));
+            c.close();
+          },
+        }),
+      };
+    },
+    async del(key: string, options: unknown) {
+      calls.push({ key, options });
+    },
+  } as unknown as BlobSDK;
+  const storage = new VercelPrivateStorage({ storeId: 'store_fixture' }, sdk);
+  await storage.put('campaign/source.pdf', new TextEncoder().encode('test'), 'application/pdf');
+  assert.equal(new TextDecoder().decode(await storage.read('campaign/source.pdf')), 'test');
+  await storage.remove('campaign/source.pdf');
+  assert.equal(calls.length, 3);
+  for (const call of calls) {
+    assert.equal(call.options.storeId, 'store_fixture');
+    assert.equal(call.options.token, undefined);
+    assert.equal(call.options.oidcToken, undefined);
+  }
+  assert.equal(calls[0].options.access, 'private');
+  assert.equal(calls[1].options.access, 'private');
+});
+test('spaces count in private registration phrases and the phrase is matched exactly', () => {
+  const old = { deployment: process.env.AAR_DEPLOYMENT, code: process.env.AAR_REGISTRATION_CODE };
+  try {
+    process.env.AAR_DEPLOYMENT = 'hosted';
+    const phrase = 'one two three four five six';
+    process.env.AAR_REGISTRATION_CODE = phrase;
+    assert.doesNotThrow(() => assertRegistrationCode(phrase));
+    assert.throws(() => assertRegistrationCode(phrase.replaceAll(' ', '_')), /registration code/);
+  } finally {
+    if (old.deployment === undefined) delete process.env.AAR_DEPLOYMENT;
+    else process.env.AAR_DEPLOYMENT = old.deployment;
+    if (old.code === undefined) delete process.env.AAR_REGISTRATION_CODE;
+    else process.env.AAR_REGISTRATION_CODE = old.code;
+  }
+});
