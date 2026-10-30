@@ -1,0 +1,19 @@
+{
+  "name": "@aar/web",
+  "private": true,
+  "scripts": {
+    "dev": "node --use-env-proxy ../../node_modules/next/dist/bin/next dev --hostname 0.0.0.0",
+    "build": "node --use-env-proxy ../../node_modules/next/dist/bin/next build --webpack",
+    "start": "node --use-env-proxy ../../node_modules/next/dist/bin/next start --hostname 0.0.0.0"
+  },
+  "engines": {
+    "node": "24.x"
+  },
+  "packageManager": "pnpm@11.25.0",
+  "dependencies": {
+    "lucide-react": "0.468.0",
+    "next": "16.4.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1"
+  }
+}

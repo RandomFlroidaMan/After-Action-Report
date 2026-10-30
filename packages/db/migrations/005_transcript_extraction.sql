@@ -1,0 +1,12 @@
+CREATE TABLE extraction_runs(id uuid PRIMARY KEY,campaign_id uuid NOT NULL REFERENCES campaigns(id),session_id uuid NOT NULL,visibility text NOT NULL CHECK(visibility IN ('PARTY','DM')),source_digest text NOT NULL,extractor text NOT NULL,proposal_count integer NOT NULL,requests jsonb NOT NULL DEFAULT '[]',created_at timestamptz NOT NULL DEFAULT now(),FOREIGN KEY(campaign_id,session_id) REFERENCES sessions(campaign_id,id),UNIQUE(campaign_id,session_id,visibility,source_digest,extractor),UNIQUE(campaign_id,id));
+CREATE TABLE extraction_links(id uuid PRIMARY KEY,campaign_id uuid NOT NULL,run_id uuid NOT NULL,proposal_id uuid NOT NULL,evidence_id uuid NOT NULL,start_offset integer NOT NULL CHECK(start_offset>=0),end_offset integer NOT NULL CHECK(end_offset>start_offset),quote text NOT NULL,visibility text NOT NULL CHECK(visibility IN ('PARTY','DM')),FOREIGN KEY(campaign_id,run_id) REFERENCES extraction_runs(campaign_id,id),FOREIGN KEY(campaign_id,proposal_id) REFERENCES proposals(campaign_id,id),FOREIGN KEY(campaign_id,evidence_id) REFERENCES evidence(campaign_id,id),UNIQUE(proposal_id));
+ALTER TABLE extraction_runs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE extraction_links ENABLE ROW LEVEL SECURITY;
+CREATE POLICY extraction_runs_read ON extraction_runs FOR SELECT USING(aar_role(campaign_id)='DM');
+CREATE POLICY extraction_links_read ON extraction_links FOR SELECT USING(aar_role(campaign_id)='DM' OR (aar_role(campaign_id) IS NOT NULL AND visibility='PARTY' AND EXISTS(SELECT 1 FROM evidence e WHERE e.id=evidence_id AND e.visibility='PARTY') AND EXISTS(SELECT 1 FROM proposals p WHERE p.id=proposal_id AND p.visibility='PARTY')));
+CREATE POLICY extraction_runs_insert ON extraction_runs FOR INSERT WITH CHECK(aar_role(campaign_id)='DM');
+CREATE POLICY extraction_links_insert ON extraction_links FOR INSERT WITH CHECK(aar_role(campaign_id)='DM');
+GRANT SELECT,INSERT ON extraction_runs,extraction_links TO aar_app;
+CREATE TRIGGER immutable_extraction_runs BEFORE UPDATE OR DELETE ON extraction_runs FOR EACH ROW EXECUTE FUNCTION immutable_row();
+CREATE TRIGGER immutable_extraction_links BEFORE UPDATE OR DELETE ON extraction_links FOR EACH ROW EXECUTE FUNCTION immutable_row();
+CREATE INDEX extraction_source_lookup ON extraction_links(campaign_id,evidence_id,visibility);

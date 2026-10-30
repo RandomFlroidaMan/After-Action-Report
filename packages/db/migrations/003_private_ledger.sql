@@ -1,0 +1,11 @@
+ALTER TABLE ledger_entries ADD COLUMN visibility text NOT NULL DEFAULT 'PARTY' CHECK(visibility IN ('PARTY','DM'));
+DROP POLICY ledger_entries_access ON ledger_entries;
+CREATE POLICY ledger_entries_access ON ledger_entries FOR SELECT USING(aar_role(campaign_id) IS NOT NULL AND (visibility='PARTY' OR aar_role(campaign_id)='DM'));
+ALTER TABLE facts ADD FOREIGN KEY(campaign_id,session_id) REFERENCES sessions(campaign_id,id);
+ALTER TABLE proposals ADD FOREIGN KEY(campaign_id,session_id) REFERENCES sessions(campaign_id,id);
+ALTER TABLE reports ADD FOREIGN KEY(campaign_id,session_id) REFERENCES sessions(campaign_id,id);
+CREATE TRIGGER immutable_reports BEFORE UPDATE OR DELETE ON reports FOR EACH ROW EXECUTE FUNCTION immutable_row();
+CREATE TABLE usage_records(id uuid PRIMARY KEY,campaign_id uuid NOT NULL REFERENCES campaigns(id),job_id uuid REFERENCES async_jobs(id),provider text NOT NULL,request_id text,unit text NOT NULL,quantity numeric NOT NULL,estimated_cost numeric,created_at timestamptz DEFAULT now());
+ALTER TABLE usage_records ENABLE ROW LEVEL SECURITY;
+CREATE POLICY usage_access ON usage_records FOR SELECT USING(aar_role(campaign_id)='DM');
+GRANT SELECT ON usage_records TO aar_app;

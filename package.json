@@ -1,0 +1,48 @@
+{
+  "name": "after-action-report",
+  "private": true,
+  "packageManager": "pnpm@11.25.0",
+  "scripts": {
+    "dev": "pnpm --filter @aar/web dev",
+    "build": "pnpm --filter @aar/web build",
+    "typecheck": "tsc --noEmit",
+    "test": "node --env-file-if-exists=.env --import tsx --test --test-isolation=none tests/*.test.ts",
+    "db:migrate": "node --env-file-if-exists=.env --import tsx packages/db/migrate.ts",
+    "db:seed": "node --env-file-if-exists=.env --import tsx packages/db/seed.ts",
+    "worker": "node --use-env-proxy --env-file-if-exists=.env --import tsx apps/worker/index.ts",
+    "lint": "eslint .",
+    "test:e2e": "playwright test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "test:postgres": "node --env-file-if-exists=.env --import tsx tests/postgres-smoke.ts",
+    "dev:hosted-test": "AAR_DEPLOYMENT=hosted pnpm dev"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "0.3.14",
+    "@vercel/blob": "2.8.2",
+    "lucide-react": "0.468.0",
+    "next": "16.4.3",
+    "pdf-lib": "1.17.1",
+    "pdf-parse": "2.4.5",
+    "pg": "8.16.3",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
+    "zod": "4.6.7"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "@types/node": "24.10.1",
+    "@types/pg": "8.15.6",
+    "@types/react": "19.2.6",
+    "@types/react-dom": "19.2.3",
+    "eslint": "9.39.1",
+    "prettier": "3.6.2",
+    "tsx": "4.20.6",
+    "typescript": "5.9.3",
+    "typescript-eslint": "8.46.4"
+  },
+  "type": "module",
+  "engines": {
+    "node": "24.x"
+  }
+}
